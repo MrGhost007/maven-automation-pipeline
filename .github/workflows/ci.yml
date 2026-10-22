@@ -17,57 +17,53 @@ jobs:
         java-version: [17, 21]
 
     steps:
-      - name: Checkout source code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK ${{ matrix.java-version }}
-        uses: actions/setup-java@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.java-version }}
           distribution: temurin
           cache: maven
 
-      - name: Compile Java code
+      - name: Compile Code Base
         run: mvn clean compile
 
-      - name: Run automated tests
+      - name: Run Automated Test Suites
         run: mvn test
 
-      - name: Package application
+      - name: Package Executable Distribution
         run: mvn package
 
-      - name: Upload JAR artifact
-        if: matrix.java-version == 17
+      - name: Upload Build Artifact
+        if: matrix.java-version == '17'
         uses: actions/upload-artifact@v4
         with:
           name: production-ready-jar
           path: target/*.jar
           retention-days: 5
 
-  docker-build:
-    runs-on: ubuntu-latest
+  deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-and-validate
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          java-version: "17"
+          java-version: '17'
           distribution: temurin
           cache: maven
 
-      - name: Package application for Docker
-        run: mvn -B clean package
+      - name: Build Maven Package
+        run: mvn clean package
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: maven-automation-pipeline:latest
+      - name: Deploy to Production Environment
+        run: |
+          echo "CI tests passed. Deploying automatically..."
+          docker compose up -d --build --force-recreate
