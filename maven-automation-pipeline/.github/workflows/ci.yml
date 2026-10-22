@@ -1,0 +1,38 @@
+name: DevOps Java CI Automation Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Compile Java code
+        run: mvn clean compile
+
+      - name: Run automated tests
+        run: mvn test
+
+      - name: Package application
+        run: mvn package
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-ready-jar
+          path: target/*.jar
+          retention-days: 5
